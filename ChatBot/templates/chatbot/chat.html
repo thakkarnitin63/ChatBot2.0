@@ -1,0 +1,31 @@
+<!-- chatbot/templates/chatbot/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Chat with our bot!</h1>
+    <div id="chat-box">
+        <div id="chat-log"></div>
+    </div>
+    <input type="text" id="user-input" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        function sendMessage() {
+            var userMessage = $("#user-input").val();
+            $("#chat-log").append("<div><b>You:</b> " + userMessage + "</div>");
+            
+            $.get("/get_response/", { user_message: userMessage }, function(data) {
+                $("#chat-log").append("<div><b>Bot:</b> " + data.response + "</div>");
+            });
+
+            $("#user-input").val("");  // Clear input field after sending
+        }
+    </script>
+</body>
+</html>

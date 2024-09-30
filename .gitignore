@@ -1,1 +1,4 @@
 /chatbot_project/__pycache__
+/chatbot/__pycache__
+/chatbot/migrations
+/chatbot/api.py
