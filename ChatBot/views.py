@@ -1,32 +1,40 @@
 # chatbot/views.py
 from django.shortcuts import render
 from django.http import JsonResponse
-import openai
-from .api import OPENAI_API_KEY
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
-# Load OpenAI API key from environment
-openai.api_key = OPENAI_API_KEY
+# Load the pre-trained model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
+model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
+chat_history = []
 
-# Function to get chatbot response using OpenAI's GPT-3.5 API
 def chatbot_response(user_input):
-    try:
-        # Make a request to the OpenAI API
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # You can use "gpt-4" if available and if your subscription allows it
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_input},
-            ],
-            max_tokens=150,
-            temperature=0.7,
-        )
-        
-        # Extract the response from the API
-        response_text = response['choices'][0]['message']['content'].strip()
-        return response_text
-    except Exception as e:
-        # Handle any exceptions
-        return "Sorry, I couldn't process your request at the moment."
+    global chat_history
+    new_input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
+
+    # Append new user input to the chat history
+    if len(chat_history) > 0:
+        bot_input_ids = torch.cat([chat_history, new_input_ids], dim=-1)
+    else:
+        bot_input_ids = new_input_ids
+
+    # Generate a response
+    chat_history_ids = model.generate(
+        bot_input_ids,
+        max_length=1000,
+        pad_token_id=tokenizer.eos_token_id,
+        do_sample=True,
+        top_p=0.95,
+        top_k=50
+    )
+
+    # Update chat history
+    chat_history = chat_history_ids
+
+    # Decode the response
+    response = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+    return response
 
 # View to render the chat page
 def chat_view(request):
